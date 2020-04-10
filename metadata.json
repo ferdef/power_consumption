@@ -1,0 +1,9 @@
+{
+  "name": "Power Consumption",
+  "description": "Show power consumption in a laptop",
+  "uuid": "power_consumption@f3rd3f.gmail.com",
+  "shell-version": [
+    "3.34"
+  ],
+  "version": 0.1
+}
