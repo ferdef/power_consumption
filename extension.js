@@ -22,7 +22,7 @@ const SHELL_MINOR = parseInt(Config.PACKAGE_VERSION.split('.')[1]);
 var label = null;
 var indicator = null;
 
-var ExampleIndicator = class ExampleIndicator extends PanelMenu.Button {
+var PowerConsumption = class PowerConsumption extends PanelMenu.Button {
   _init() {
     super._init(0.0, `${Me.metadata.name} Indicator`, false);
     
@@ -32,15 +32,6 @@ var ExampleIndicator = class ExampleIndicator extends PanelMenu.Button {
 
     this.add_child(label);
     
-    let icon = new St.Icon({
-      gicon: new Gio.ThemedIcon({name: 'face-laugh-symbolic'}),
-      style_class: 'system-status-icon'
-    });
-    this.add_child(icon);  
-    
-    // Add a menu item
-    this.menu.addAction("Preferences", this.menuAction, null);
-    
     this._update();
   }
   
@@ -48,16 +39,12 @@ var ExampleIndicator = class ExampleIndicator extends PanelMenu.Button {
     label.set_text(get_data());
     Mainloop.timeout_add_seconds(1, Lang.bind(this, this._update));
   }
-  
-  menuAction() {
-    log('Accesing Preferences');
-  }
 }
 
 if (SHELL_MINOR > 30) {
-  ExampleIndicator = GObject.registerClass(
-    {GTypeName: 'ExampleIndicator'},
-    ExampleIndicator
+  PowerConsumption = GObject.registerClass(
+    {GTypeName: 'PowerConsumption'},
+    PowerConsumption
   );
 }
 
@@ -80,11 +67,11 @@ function init() {
 
 function enable() {
  
-  indicator = new ExampleIndicator();
+  indicator = new PowerConsumption();
   
   log(`Enabling ${Me.metadata.name} version ${Me.metadata.version}`);
 
-  Main.panel.addToStatusArea(`${Me.metadata.name} Indicator`, indicator);
+  Main.panel.addToStatusArea(`${Me.metadata.name}`, indicator);
 }
 
 function disable() {
