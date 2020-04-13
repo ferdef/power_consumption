@@ -6,6 +6,7 @@
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
 const GObject = imports.gi.GObject;
+const Clutter = imports.gi.Clutter;
 const St = imports.gi.St;
 
 const ExtensionUtils = imports.misc.extensionUtils;
@@ -27,7 +28,9 @@ var PowerConsumption = class PowerConsumption extends PanelMenu.Button {
     super._init(0.0, `${Me.metadata.name} Indicator`, false);
     
     label = new St.Label({
-      text: get_data()
+      text: get_data(),
+      y_align: Clutter.ActorAlign.CENTER,
+      style_class: 'power_consumption_label'
     });
 
     this.add_child(label);
@@ -48,17 +51,44 @@ if (SHELL_MINOR > 30) {
   );
 }
 
+function get_current_path() {
+  return "/sys/class/power_supply/BAT0/current_now";
+}
+
+function get_voltage_path() {
+  return "/sys/class/power_supply/BAT0/voltage_now";
+}
+
+function get_current() {
+  var filepath = get_current_path();
+  if(GLib.file_test (filepath, GLib.FileTest.EXISTS)) {
+    return parseInt(GLib.file_get_contents(filepath)[1]);
+  }
+
+  return null;
+}
+
+function get_voltage() {
+  var filepath = get_voltage_path();
+  if(GLib.file_test (filepath, GLib.FileTest.EXISTS)) {
+    return parseInt(GLib.file_get_contents(filepath)[1]);
+  }
+}
+
 function get_data() {
-  var current_path = "/sys/class/power_supply/BAT0/current_now";
-  var voltage_path = "/sys/class/power_supply/BAT0/voltage_now";
-  var current = GLib.file_get_contents(current_path)[1];
-  var voltage = GLib.file_get_contents(voltage_path)[1];
+  var power_str = "N/A";
+  var current = get_current();
+  var voltage = get_voltage();
+
+  if (current && voltage) {
+    var raw_power = (current * voltage) / 1000000000000;
   
-  var raw_power = (current * voltage) / 1000000000000;
+    var power = (Math.round(raw_power * 100) / 100).toFixed(2);
+
+    power_str = `${String(power)} W`;
+  }
   
-  var power = (Math.round(raw_power * 100) / 100).toFixed(2);
-  
-  return(`${String(power)} W`);
+  return(power_str);
 }
 
 function init() {
