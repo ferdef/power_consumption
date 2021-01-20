@@ -23,6 +23,8 @@ const SHELL_MINOR = parseInt(Config.PACKAGE_VERSION.split('.')[1]);
 var label = null;
 var indicator = null;
 
+const POWER_SUPPLY_DIR = "/sys/class/power_supply";
+
 var PowerConsumption = class PowerConsumption extends PanelMenu.Button {
   _init() {
     super._init(0.0, `${Me.metadata.name} Indicator`, false);
@@ -51,15 +53,16 @@ if (SHELL_MINOR > 30) {
   );
 }
 
-function find_battery() {
-  let power_supplies_path = "/sys/class/power_supply";
-  let dir = Gio.File.new_for_path(power_supplies_path);
+function find_batteries() {
+  let dir = Gio.File.new_for_path(POWER_SUPPLY_DIR);
   let fileEnum;
   try {
     fileEnum = dir.enumerate_children('standard::name,standard::type', Gio.FileQueryInfoFlags.NONE, null);
   } catch (e) {
     fileEnum = null;
   }
+
+  let batteries = [];
 
   if (fileEnum != null) {
     let info;
@@ -70,31 +73,28 @@ function find_battery() {
 
       let basename = child.get_basename();
       if (basename.indexOf("BAT") !== -1)
-        return basename;
+        batteries.push(basename);
     }
   }
 
 
-  return "BAT0";
+  return batteries;
 }
 
-function get_current_path() {
-  let battery = find_battery();
-  return `/sys/class/power_supply/${battery}/current_now`;
+function get_current_path(battery) {
+  return `${POWER_SUPPLY_DIR}/${battery}/current_now`;
 }
 
-function get_voltage_path() {
-  let battery = find_battery();
-  return `/sys/class/power_supply/${battery}/voltage_now`;
+function get_voltage_path(battery) {
+  return `${POWER_SUPPLY_DIR}/${battery}/voltage_now`;
 }
 
-function get_power_path() {
-  let battery = find_battery();
-  return `/sys/class/power_supply/${battery}/power_now`;
+function get_power_path(battery) {
+  return `${POWER_SUPPLY_DIR}/${battery}/power_now`;
 }
 
-function get_current() {
-  var filepath = get_current_path();
+function get_current(battery) {
+  var filepath = get_current_path(battery);
   if (GLib.file_test(filepath, GLib.FileTest.EXISTS)) {
     return parseInt(GLib.file_get_contents(filepath)[1]);
   }
@@ -102,8 +102,8 @@ function get_current() {
   return -1;
 }
 
-function get_voltage() {
-  var filepath = get_voltage_path();
+function get_voltage(battery) {
+  var filepath = get_voltage_path(battery);
   if (GLib.file_test(filepath, GLib.FileTest.EXISTS)) {
     return parseInt(GLib.file_get_contents(filepath)[1]);
   }
@@ -111,8 +111,8 @@ function get_voltage() {
   return -1;
 }
 
-function get_power_now() {
-  var filepath = get_power_path();
+function get_power_now(battery) {
+  var filepath = get_power_path(battery);
   if (GLib.file_test(filepath, GLib.FileTest.EXISTS)) {
     return parseInt(GLib.file_get_contents(filepath)[1]);
   }
@@ -120,11 +120,11 @@ function get_power_now() {
   return -1;
 }
 
-function get_data() {
+function get_batt_info(battery) {
   var power_str = "N/A";
-  var current = get_current();
-  var voltage = get_voltage();
-  var power_now = get_power_now();
+  var current = get_current(battery);
+  var voltage = get_voltage(battery);
+  var power_now = get_power_now(battery);
 
   if (current > -1 && voltage > -1) {
     var raw_power = (current * voltage) / 1000000000000;
@@ -139,6 +139,15 @@ function get_data() {
   }
 
   return (power_str);
+}
+
+function get_data() {
+  let batteries = find_batteries();
+  let powers = [];
+  batteries.forEach((item) => {
+    powers.push(get_batt_info(item));
+  });
+  return powers.join(" - ");
 }
 
 function init() {
