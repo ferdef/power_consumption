@@ -26,7 +26,7 @@ var indicator = null;
 var PowerConsumption = class PowerConsumption extends PanelMenu.Button {
   _init() {
     super._init(0.0, `${Me.metadata.name} Indicator`, false);
-    
+
     label = new St.Label({
       text: get_data(),
       y_align: Clutter.ActorAlign.CENTER,
@@ -34,10 +34,10 @@ var PowerConsumption = class PowerConsumption extends PanelMenu.Button {
     });
 
     this.add_child(label);
-    
+
     this._update();
   }
-  
+
   _update() {
     label.set_text(get_data());
     Mainloop.timeout_add_seconds(1, Lang.bind(this, this._update));
@@ -46,49 +46,99 @@ var PowerConsumption = class PowerConsumption extends PanelMenu.Button {
 
 if (SHELL_MINOR > 30) {
   PowerConsumption = GObject.registerClass(
-    {GTypeName: 'PowerConsumption'},
+    { GTypeName: 'PowerConsumption' },
     PowerConsumption
   );
 }
 
+function find_battery() {
+  let power_supplies_path = "/sys/class/power_supply";
+  let dir = Gio.File.new_for_path(power_supplies_path);
+  let fileEnum;
+  try {
+    fileEnum = dir.enumerate_children('standard::name,standard::type', Gio.FileQueryInfoFlags.NONE, null);
+  } catch (e) {
+    fileEnum = null;
+  }
+
+  if (fileEnum != null) {
+    let info;
+    while ((info = fileEnum.next_file(null))) {
+      let child = fileEnum.get_child(info);
+      if (child == null)
+        continue;
+
+      let basename = child.get_basename();
+      if (basename.indexOf("BAT") !== -1)
+        return basename;
+    }
+  }
+
+
+  return "BAT0";
+}
+
 function get_current_path() {
-  return "/sys/class/power_supply/BAT0/current_now";
+  let battery = find_battery();
+  return `/sys/class/power_supply/${battery}/current_now`;
 }
 
 function get_voltage_path() {
-  return "/sys/class/power_supply/BAT0/voltage_now";
+  let battery = find_battery();
+  return `/sys/class/power_supply/${battery}/voltage_now`;
+}
+
+function get_power_path() {
+  let battery = find_battery();
+  return `/sys/class/power_supply/${battery}/power_now`;
 }
 
 function get_current() {
   var filepath = get_current_path();
-  if(GLib.file_test (filepath, GLib.FileTest.EXISTS)) {
+  if (GLib.file_test(filepath, GLib.FileTest.EXISTS)) {
     return parseInt(GLib.file_get_contents(filepath)[1]);
   }
 
-  return null;
+  return -1;
 }
 
 function get_voltage() {
   var filepath = get_voltage_path();
-  if(GLib.file_test (filepath, GLib.FileTest.EXISTS)) {
+  if (GLib.file_test(filepath, GLib.FileTest.EXISTS)) {
     return parseInt(GLib.file_get_contents(filepath)[1]);
   }
+
+  return -1;
+}
+
+function get_power_now() {
+  var filepath = get_power_path();
+  if (GLib.file_test(filepath, GLib.FileTest.EXISTS)) {
+    return parseInt(GLib.file_get_contents(filepath)[1]);
+  }
+
+  return -1;
 }
 
 function get_data() {
   var power_str = "N/A";
   var current = get_current();
   var voltage = get_voltage();
+  var power_now = get_power_now();
 
-  if (current && voltage) {
+  if (current > -1 && voltage > -1) {
     var raw_power = (current * voltage) / 1000000000000;
-  
+
     var power = (Math.round(raw_power * 100) / 100).toFixed(2);
 
     power_str = `${String(power)} W`;
+  } else if (power_now > -1) {
+    var power = (Math.round(power_now) / 1000000).toFixed(2);
+
+    power_str = `${String(power)} W`;
   }
-  
-  return(power_str);
+
+  return (power_str);
 }
 
 function init() {
@@ -96,9 +146,9 @@ function init() {
 }
 
 function enable() {
- 
+
   indicator = new PowerConsumption();
-  
+
   log(`Enabling ${Me.metadata.name} version ${Me.metadata.version}`);
 
   Main.panel.addToStatusArea(`${Me.metadata.name}`, indicator);
@@ -106,7 +156,7 @@ function enable() {
 
 function disable() {
   log(`Disabling ${Me.metadata.name} version ${Me.metadata.version}`);
-  
+
   if (indicator !== null) {
     indicator.destroy();
     indicator = null;
