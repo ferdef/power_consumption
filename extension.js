@@ -81,20 +81,8 @@ function find_batteries() {
   return batteries;
 }
 
-function get_current_path(battery) {
-  return `${POWER_SUPPLY_DIR}/${battery}/current_now`;
-}
-
-function get_voltage_path(battery) {
-  return `${POWER_SUPPLY_DIR}/${battery}/voltage_now`;
-}
-
-function get_power_path(battery) {
-  return `${POWER_SUPPLY_DIR}/${battery}/power_now`;
-}
-
 function get_current(battery) {
-  var filepath = get_current_path(battery);
+  var filepath = `${POWER_SUPPLY_DIR}/${battery}/current_now`;
   if (GLib.file_test(filepath, GLib.FileTest.EXISTS)) {
     return parseInt(GLib.file_get_contents(filepath)[1]);
   }
@@ -103,7 +91,7 @@ function get_current(battery) {
 }
 
 function get_voltage(battery) {
-  var filepath = get_voltage_path(battery);
+  var filepath = `${POWER_SUPPLY_DIR}/${battery}/voltage_now`;
   if (GLib.file_test(filepath, GLib.FileTest.EXISTS)) {
     return parseInt(GLib.file_get_contents(filepath)[1]);
   }
@@ -112,7 +100,16 @@ function get_voltage(battery) {
 }
 
 function get_power_now(battery) {
-  var filepath = get_power_path(battery);
+  var filepath = `${POWER_SUPPLY_DIR}/${battery}/power_now`;
+  if (GLib.file_test(filepath, GLib.FileTest.EXISTS)) {
+    return parseInt(GLib.file_get_contents(filepath)[1]);
+  }
+
+  return -1;
+}
+
+function is_charging() {
+  var filepath = `${POWER_SUPPLY_DIR}/AC0/online`;
   if (GLib.file_test(filepath, GLib.FileTest.EXISTS)) {
     return parseInt(GLib.file_get_contents(filepath)[1]);
   }
@@ -125,6 +122,7 @@ function get_batt_info(battery) {
   var current = get_current(battery);
   var voltage = get_voltage(battery);
   var power_now = get_power_now(battery);
+  var charging = is_charging();
 
   if (current > -1 && voltage > -1) {
     var raw_power = (current * voltage) / 1000000000000;
@@ -137,6 +135,8 @@ function get_batt_info(battery) {
 
     power_str = `${String(power)} W`;
   }
+
+  power_str = ((charging > 0) ? '+' : '-') + power_str;
 
   return (power_str);
 }
