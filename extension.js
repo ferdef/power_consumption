@@ -53,7 +53,7 @@ if (SHELL_MINOR > 30) {
   );
 }
 
-function find_batteries() {
+function find_devices(prefix) {
   let dir = Gio.File.new_for_path(POWER_SUPPLY_DIR);
   let fileEnum;
   try {
@@ -62,7 +62,7 @@ function find_batteries() {
     fileEnum = null;
   }
 
-  let batteries = [];
+  let devices = [];
 
   if (fileEnum != null) {
     let info;
@@ -72,13 +72,21 @@ function find_batteries() {
         continue;
 
       let basename = child.get_basename();
-      if (basename.indexOf("BAT") !== -1)
-        batteries.push(basename);
+      if (basename.indexOf(prefix) !== -1)
+        devices.push(basename);
     }
   }
 
 
-  return batteries;
+  return devices;
+}
+
+function find_ac() {
+  return find_devices("AC");
+}
+
+function find_batteries() {
+  return find_devices("BAT");
 }
 
 function get_current(battery) {
@@ -109,7 +117,9 @@ function get_power_now(battery) {
 }
 
 function is_charging() {
-  var filepath = `${POWER_SUPPLY_DIR}/AC0/online`;
+  let ac_devices = find_ac();
+  let ac_device = ac_devices.length > 0 ? ac_devices[0] : "AC";
+  var filepath = `${POWER_SUPPLY_DIR}/${ac_device}/online`;
   if (GLib.file_test(filepath, GLib.FileTest.EXISTS)) {
     return parseInt(GLib.file_get_contents(filepath)[1]);
   }
