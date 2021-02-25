@@ -25,9 +25,9 @@ var indicator = null;
 
 const POWER_SUPPLY_DIR = "/sys/class/power_supply";
 
-var PowerConsumption = class PowerConsumption extends PanelMenu.Button {
+var PowerConsumption = GObject.registerClass(class PowerConsumption extends PanelMenu.Button {
   _init() {
-    super._init(0.0, `${Me.metadata.name} Indicator`, false);
+    super._init();
 
     label = new St.Label({
       text: get_data(),
@@ -44,14 +44,7 @@ var PowerConsumption = class PowerConsumption extends PanelMenu.Button {
     label.set_text(get_data());
     Mainloop.timeout_add_seconds(1, Lang.bind(this, this._update));
   }
-}
-
-if (SHELL_MINOR > 30) {
-  PowerConsumption = GObject.registerClass(
-    { GTypeName: 'PowerConsumption' },
-    PowerConsumption
-  );
-}
+});
 
 function find_devices(prefix) {
   let dir = Gio.File.new_for_path(POWER_SUPPLY_DIR);
