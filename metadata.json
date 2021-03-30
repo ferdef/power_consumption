@@ -3,7 +3,10 @@
   "description": "Show power consumption in a laptop",
   "uuid": "power_consumption@f3rd3f",
   "shell-version": [
-    "3.34"
+    "3.34",
+    "3.36",
+    "3.38",
+    "40.0"
   ],
   "version": 0.1,
   "url": "https://github.com/ferdef/power_consumption"
